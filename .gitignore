@@ -28,7 +28,6 @@ Desktop.ini
 *~
 
 # certificates and signing material — NEVER commit real keys
-*.pem
 *.p12
 *.cer
 *.key
