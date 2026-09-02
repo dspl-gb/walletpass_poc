@@ -1,0 +1,8 @@
+{
+  "$schema": "https://openjsf.org/eslint/shareable-config/",
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "installCommand": "npm ci",
+  "devCommand": "npm run dev",
+  "outputDirectory": ".next"
+}

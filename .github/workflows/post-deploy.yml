@@ -1,0 +1,37 @@
+name: Post-deploy smoke tests
+
+on:
+  deployment_status:
+
+jobs:
+  smoke:
+    name: Smoke tests
+    if: github.event.deployment_status.state == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run smoke tests against deployment
+        run: npx playwright test e2e/smoke.spec.ts
+        env:
+          BASE_URL: ${{ github.event.deployment_status.target_url }}
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-report
+          path: playwright-report/
+          retention-days: 14

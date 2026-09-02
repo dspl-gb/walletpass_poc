@@ -1,0 +1,28 @@
+{
+  "name": "Wallet Pass Demo",
+  "short_name": "WalletPass",
+  "description": "Issue a real Apple Wallet .pkpass or Google Wallet save link from a web app. No login required for this demo.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1c1612",
+  "theme_color": "#1c1612",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
