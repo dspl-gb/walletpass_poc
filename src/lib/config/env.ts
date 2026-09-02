@@ -13,6 +13,8 @@ import path from "node:path";
 
 import type { WalletConfigStatus } from "@/lib/wallet/common/types";
 
+import { looksLikePemMaterial } from "./pem-material";
+
 export type WalletPlatform = "apple" | "google";
 
 function read(name: string): string | undefined {
@@ -33,7 +35,7 @@ export function resolveEnvPath(filePath: string): string {
 }
 
 function hasReadableSource(source: { base64?: string; path?: string }): boolean {
-  if (source.base64) return true;
+  if (looksLikePemMaterial(source.base64)) return true;
   if (!source.path) return false;
   return existsSync(resolveEnvPath(source.path));
 }
@@ -81,7 +83,7 @@ export interface SupabaseConfig {
 }
 
 export function getSupabaseConfig(): SupabaseConfig | null {
-  const url = read("SUPABASE_URL");
+  const url = read("SUPABASE_URL")?.replace(/\/+$/, "");
   const serviceRoleKey = read("SUPABASE_SERVICE_ROLE_KEY");
   if (!url || !serviceRoleKey) return null;
   return { url, serviceRoleKey, anonKey: read("SUPABASE_ANON_KEY") };

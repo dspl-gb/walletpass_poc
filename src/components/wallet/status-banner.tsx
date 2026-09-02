@@ -51,9 +51,8 @@ export function StatusBanner({
       <CircleDashed className="h-4 w-4" />
       <AlertTitle>Waiting on credentials</AlertTitle>
       <AlertDescription>
-        Still needed: {missing.join(", ")}. Apple can still download a .pkpass built from pass data;
-        Apple Wallet will not install it until signing certificates are added. Google save links need
-        a service account.
+        Still needed: {missing.join(", ")}. Wallet buttons will return a clear error until signing
+        credentials are added on the server.
       </AlertDescription>
     </Alert>
   );

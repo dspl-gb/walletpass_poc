@@ -230,24 +230,10 @@ describe("Apple pass generation", () => {
 
 
 
-  it("issues a downloadable .pkpass when mock mode is off and certs are missing", async () => {
-
+  it("throws when mock mode is off and certs are missing", async () => {
     process.env.MOCK_WALLET_MODE = "false";
 
-    const result = await issueApplePass(samplePass(), { serialNumber: "serial-1" });
-
-    expect(result.mode).toBe("real");
-
-    if (result.mode === "real") {
-
-      expect(result.signed).toBe(false);
-
-      expect(result.buffer.subarray(0, 2).toString("utf8")).toBe("PK");
-
-      expect(result.buffer.toString("utf8")).toContain("Demo Member");
-
-    }
-
+    await expect(issueApplePass(samplePass(), { serialNumber: "serial-1" })).rejects.toThrow(AppError);
   });
 
 

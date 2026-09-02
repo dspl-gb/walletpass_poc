@@ -77,3 +77,18 @@ if (-not (Test-Path $wwdrPem)) {
 }
 
 Write-Host "Done. Restart npm run dev after signerCert.pem and signerKey.pem exist."
+Write-Host ""
+Write-Host "For Vercel, copy these one-line base64 values into environment variables:"
+foreach ($pair in @(
+  @{ Label = "APPLE_CERTIFICATE_BASE64"; File = "signerCert.pem" },
+  @{ Label = "APPLE_PRIVATE_KEY_BASE64"; File = "signerKey.pem" },
+  @{ Label = "APPLE_WWDR_CERTIFICATE_BASE64"; File = "wwdr.pem" }
+)) {
+  $path = Join-Path $appleDir $pair.File
+  if (Test-Path $path) {
+    $bytes = [IO.File]::ReadAllBytes($path)
+    $b64 = [Convert]::ToBase64String($bytes)
+    Write-Host ""
+    Write-Host "$($pair.Label)=$b64"
+  }
+}

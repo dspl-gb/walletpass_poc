@@ -89,7 +89,7 @@ describe("Apple and Google API routes", () => {
     expect(response.status).toBe(403);
   });
 
-  it("returns an unsigned .pkpass when certificates are not configured", async () => {
+  it("returns 503 when certificates are not configured", async () => {
     const { POST } = await import("@/app/api/wallet/apple/route");
     const pass = memoryCreatePass({ ...samplePassInput(), serialNumber: "API-UNSIGNED" }, OWNER_A, "published");
 
@@ -102,9 +102,9 @@ describe("Apple and Google API routes", () => {
     });
 
     const response = await POST(jsonRequest("/api/wallet/apple", { passId: pass.id }, OWNER_A));
-    expect(response.status).toBe(200);
-    expect(response.headers.get("content-type")).toBe(APPLE_PASS_CONTENT_TYPE);
-    expect(response.headers.get("x-wallet-signed")).toBe("false");
+    expect(response.status).toBe(503);
+    const body = (await response.json()) as { error: { message: string } };
+    expect(body.error.message).toContain("not configured");
   });
 
   it("returns a user-safe error when Apple generation has no credentials", async () => {

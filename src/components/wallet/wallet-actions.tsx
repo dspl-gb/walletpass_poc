@@ -60,10 +60,17 @@ export function WalletActions({ passId, blockReason = null, status, platformHint
     setNotice(null);
     setBusy("apple");
     try {
+      // iOS Safari installs .pkpass files most reliably via a direct navigation.
+      if (hint.isAppleDevice && status && !status.mockMode && status.appleConfigured) {
+        window.location.assign(`/api/wallet/apple?passId=${encodeURIComponent(passId)}`);
+        return;
+      }
+
       const response = await fetch("/api/wallet/apple", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ passId }),
+        credentials: "same-origin",
       });
       const contentType = response.headers.get("content-type") ?? "";
 
@@ -129,6 +136,7 @@ export function WalletActions({ passId, blockReason = null, status, platformHint
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ passId }),
+        credentials: "same-origin",
       });
       const body = (await response.json()) as ApiErrorBody;
       if (!response.ok) {

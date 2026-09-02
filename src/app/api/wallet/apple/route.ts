@@ -1,14 +1,16 @@
 import { NextResponse } from "next/server";
 
 import { errorResponse } from "@/lib/api/responses";
-import { getOwnerIdFromRequest } from "@/lib/session";
+import { getOwnerIdFromRouteHandler } from "@/lib/session";
+import { configurationMissing } from "@/lib/wallet/common/errors";
 import { APPLE_PASS_CONTENT_TYPE, issueAppleForOwner, parsePassId } from "@/lib/wallet/issue-apple";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 async function handle(passId: string, request: Request) {
-  const ownerId = getOwnerIdFromRequest(request);
+  const ownerId = await getOwnerIdFromRouteHandler(request);
   const { result } = await issueAppleForOwner(passId, ownerId);
 
   if (result.mode === "mock") {
@@ -29,6 +31,16 @@ async function handle(passId: string, request: Request) {
     );
   }
 
+  if (!result.signed) {
+    return errorResponse(
+      configurationMissing(
+        "Apple Wallet signing is not configured on this server. Set MOCK_WALLET_MODE=false and add APPLE_*_BASE64 variables on Vercel.",
+        "Unsigned pass generation is disabled in production",
+      ),
+      { route: "wallet/apple" },
+    );
+  }
+
   return new NextResponse(new Uint8Array(result.buffer), {
     status: 200,
     headers: {
@@ -36,7 +48,7 @@ async function handle(passId: string, request: Request) {
       "Content-Disposition": `attachment; filename="${result.fileName}"`,
       "Content-Length": String(result.buffer.byteLength),
       "Cache-Control": "no-store",
-      "X-Wallet-Signed": result.signed ? "true" : "false",
+      "X-Wallet-Signed": "true",
     },
   });
 }

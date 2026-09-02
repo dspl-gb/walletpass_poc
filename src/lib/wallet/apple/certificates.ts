@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 
 import { getAppleConfig, resolveEnvPath, type AppleConfig } from "@/lib/config/env";
+import { decodePemMaterial } from "@/lib/config/pem-material";
 import { configurationMissing, invalidCredentials } from "@/lib/wallet/common/errors";
 
 export interface AppleCertificates {
@@ -19,14 +20,18 @@ type Source = { base64?: string; path?: string };
 
 function loadSource(label: string, source: Source): Buffer {
   if (source.base64) {
-    const buffer = Buffer.from(source.base64, "base64");
-    if (buffer.length === 0) {
+    try {
+      const buffer = decodePemMaterial(source.base64);
+      if (buffer.length === 0) {
+        throw new Error("empty buffer");
+      }
+      return buffer;
+    } catch (error) {
       throw invalidCredentials(
         "The Apple Wallet signing material is not valid. Please contact support.",
-        `${label}: base64 value decoded to an empty buffer`,
+        `${label}: ${(error as Error).message}`,
       );
     }
-    return buffer;
   }
 
   if (source.path) {

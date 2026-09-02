@@ -4,13 +4,15 @@ import { errorResponse, jsonResponse } from "@/lib/api/responses";
 import { isDatabaseConfigured } from "@/lib/supabase/server";
 import { getServiceClient } from "@/lib/supabase/server";
 import { getOwnerIdFromRouteHandler } from "@/lib/session";
-import { invalidRequest } from "@/lib/wallet/common/errors";
+import { configurationMissing, invalidRequest } from "@/lib/wallet/common/errors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 30;
 
 const BUCKET = "pass-assets";
-const MAX_SIZE = 5 * 1024 * 1024;
+/** Vercel serverless request bodies are capped around 4.5 MB. */
+const MAX_SIZE = 4 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"]);
 
 const EXTENSION_TO_MIME: Record<string, string> = {
@@ -37,9 +39,15 @@ function extensionForContentType(contentType: string): string {
 
 async function ensureBucket(client: ReturnType<typeof getServiceClient>) {
   const { data: buckets, error } = await client.storage.listBuckets();
-  if (error) return;
+  if (error) {
+    throw invalidRequest(explainUploadError(error.message), error.message);
+  }
   if (buckets?.some((bucket) => bucket.name === BUCKET)) return;
-  await client.storage.createBucket(BUCKET, { public: true });
+
+  const { error: createError } = await client.storage.createBucket(BUCKET, { public: true });
+  if (createError) {
+    throw invalidRequest(explainUploadError(createError.message), createError.message);
+  }
 }
 
 function explainUploadError(message: string): string {
@@ -61,10 +69,9 @@ export async function POST(request: Request) {
     }
 
     if (!isDatabaseConfigured()) {
-      return jsonResponse({
-        url: null,
-        message: "Storage is unavailable in memory mode. Use an external image URL instead.",
-      });
+      throw configurationMissing(
+        "Image upload requires Supabase. Add SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to your Vercel project environment.",
+      );
     }
 
     const formData = await request.formData();
@@ -84,7 +91,7 @@ export async function POST(request: Request) {
     }
 
     if (file.size > MAX_SIZE) {
-      throw invalidRequest("Image must be smaller than 5 MB.");
+      throw invalidRequest("Image must be smaller than 4 MB.");
     }
 
     const ext = extensionForContentType(contentType);

@@ -4,5 +4,13 @@
   "buildCommand": "npm run build",
   "installCommand": "npm ci",
   "devCommand": "npm run dev",
-  "outputDirectory": ".next"
+  "outputDirectory": ".next",
+  "functions": {
+    "src/app/api/wallet/apple/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/storage/upload/route.ts": {
+      "maxDuration": 30
+    }
+  }
 }

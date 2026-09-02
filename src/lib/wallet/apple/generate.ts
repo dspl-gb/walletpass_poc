@@ -101,7 +101,10 @@ export async function generateApplePass(
     );
   }
 
-  return generateUnsignedApplePass(pass, options);
+  throw configurationMissing(
+    "Apple Wallet signing is not configured. On Vercel, set APPLE_TEAM_ID, APPLE_PASS_TYPE_IDENTIFIER, and the APPLE_*_BASE64 certificate variables.",
+    "Apple signing material is incomplete",
+  );
 }
 
 export async function generateUnsignedApplePass(
