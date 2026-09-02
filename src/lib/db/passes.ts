@@ -193,14 +193,16 @@ export async function updatePass(
   passId: string,
   input: CommonPassInputParsed,
   status?: "draft" | "published" | "archived",
+  ownerId?: string | null,
 ): Promise<CommonPass> {
-  if (isMemoryStore()) return memoryUpdatePass(passId, input, status);
+  if (isMemoryStore()) return memoryUpdatePass(passId, input, status, ownerId);
 
   const existing = await getPassById(passId);
   if (!existing) throw notFound();
 
+  const userId = existing.userId ?? (isOwnerUuid(ownerId) ? ownerId : null);
   const serialNumber = input.serialNumber?.trim() || existing.serialNumber;
-  const passRow = inputToPassRow(input, existing.userId, serialNumber, status ?? existing.status);
+  const passRow = inputToPassRow(input, userId, serialNumber, status ?? existing.status);
 
   const { error: passError } = await getServiceClient()
     .from(PASSES_TABLE)

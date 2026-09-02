@@ -52,13 +52,8 @@ export function PassBuilderForm({ initialPass, mode = "create" }: PassBuilderFor
 
   useEffect(() => {
     fetch("/api/session", { credentials: "same-origin" })
-      .then((response) => {
-        if (response.ok) setSessionReady(true);
-      })
-      .catch(() => {
-        // Middleware may still have issued a cookie on a prior navigation.
-        setSessionReady(true);
-      });
+      .then(() => setSessionReady(true))
+      .catch(() => setSessionReady(true));
   }, []);
 
   const previewPass: CommonPass = {
@@ -82,10 +77,13 @@ export function PassBuilderForm({ initialPass, mode = "create" }: PassBuilderFor
     }));
   }
 
-  async function persistPass(overrides: Partial<FormState> = {}): Promise<CommonPass> {
-    if (!passId) throw new Error("Save the pass as a draft first.");
+  async function persistPass(
+    overrides: Partial<FormState> = {},
+    id: string = passId,
+  ): Promise<CommonPass> {
+    if (!id) throw new Error("Save the pass as a draft first.");
     const payload = { ...form, ...overrides, status: overrides.status ?? form.status ?? "draft" };
-    const response = await fetch(`/api/passes/${passId}`, {
+    const response = await fetch(`/api/passes/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -98,27 +96,47 @@ export function PassBuilderForm({ initialPass, mode = "create" }: PassBuilderFor
     return body.pass;
   }
 
+  async function createOrUpdatePass(
+    status: "draft" | "published",
+    overrides: Partial<FormState> = {},
+  ): Promise<CommonPass> {
+    const payload = { ...form, ...overrides, status };
+    const isEdit = Boolean(passId);
+    const response = await fetch(isEdit ? `/api/passes/${passId}` : "/api/passes", {
+      method: isEdit ? "PUT" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      credentials: "same-origin",
+    });
+    const body = (await response.json()) as { pass?: CommonPass; error?: { message?: string } };
+    if (!response.ok || !body.pass) {
+      throw new Error(body.error?.message ?? "Could not save the pass.");
+    }
+    setPassId(body.pass.id);
+    if (status === "published" && isEdit) {
+      await fetch(`/api/passes/${body.pass.id}/publish`, { method: "POST" });
+    }
+    return body.pass;
+  }
+
+  async function ensurePassId(): Promise<string> {
+    if (passId) return passId;
+    const pass = await createOrUpdatePass("draft");
+    return pass.id;
+  }
+
   async function savePass(status: "draft" | "published") {
     setPending(true);
     setError(null);
     try {
-      const payload = { ...form, status };
-      const isEdit = mode === "edit" && passId;
-      const response = await fetch(isEdit ? `/api/passes/${passId}` : "/api/passes", {
-        method: isEdit ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-        credentials: "same-origin",
-      });
-      const body = (await response.json()) as { pass?: CommonPass; error?: { message?: string } };
-      if (!response.ok || !body.pass) {
-        throw new Error(body.error?.message ?? "Could not save the pass.");
+      const pass = await createOrUpdatePass(status);
+      if (status === "draft" && mode === "create") {
+        router.replace(`/passes/${pass.id}/edit`);
+        router.refresh();
+        setPending(false);
+        return;
       }
-      setPassId(body.pass.id);
-      if (status === "published" && isEdit) {
-        await fetch(`/api/passes/${body.pass.id}/publish`, { method: "POST" });
-      }
-      router.push(`/passes/${body.pass.id}`);
+      router.push(`/passes/${pass.id}`);
       router.refresh();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not save the pass.");
@@ -127,10 +145,6 @@ export function PassBuilderForm({ initialPass, mode = "create" }: PassBuilderFor
   }
 
   async function uploadImage(assetType: "logo" | "strip" | "thumbnail" | "background", file: File) {
-    if (!passId) {
-      setError("Save the pass as a draft first, then upload images.");
-      return;
-    }
     if (!sessionReady) {
       setError("Session is still starting. Wait a moment and try again.");
       return;
@@ -139,9 +153,10 @@ export function PassBuilderForm({ initialPass, mode = "create" }: PassBuilderFor
     setNotice(null);
     setUploadingAsset(assetType);
     try {
+      const activePassId = await ensurePassId();
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("passId", passId);
+      formData.append("passId", activePassId);
       formData.append("assetType", assetType);
       const response = await fetch("/api/storage/upload", {
         method: "POST",
@@ -159,7 +174,7 @@ export function PassBuilderForm({ initialPass, mode = "create" }: PassBuilderFor
         appearance: newAppearance,
       }));
 
-      await persistPass({ appearance: newAppearance });
+      await persistPass({ appearance: newAppearance }, activePassId);
       setNotice(`${assetType.charAt(0).toUpperCase()}${assetType.slice(1)} saved. Regenerate the wallet pass to see it on your phone.`);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Upload failed.");
@@ -222,7 +237,7 @@ export function PassBuilderForm({ initialPass, mode = "create" }: PassBuilderFor
                 url={form.appearance.logo ?? ""}
                 onUrlChange={(v) => updateForm("appearance", { ...form.appearance, logo: v || null })}
                 onUpload={(file) => uploadImage("logo", file)}
-                disabled={!passId}
+                disabled={pending || !sessionReady}
                 uploading={uploadingAsset === "logo"}
                 hint="Defaults to Aeropay. Upload your own or paste a URL."
               />
@@ -250,7 +265,7 @@ export function PassBuilderForm({ initialPass, mode = "create" }: PassBuilderFor
                   url={form.appearance[asset] ?? ""}
                   onUrlChange={(v) => updateForm("appearance", { ...form.appearance, [asset]: v || null })}
                   onUpload={(file) => uploadImage(asset, file)}
-                  disabled={!passId}
+                  disabled={pending || !sessionReady}
                   uploading={uploadingAsset === asset}
                 />
               ))}
@@ -425,7 +440,7 @@ function ImageUploadField({
         label={`${label} URL`}
         value={url}
         onChange={onUrlChange}
-        hint={hint ?? (disabled ? "Save draft first to enable upload." : "Or upload an image below.")}
+        hint={hint ?? (disabled ? "Waiting for session…" : "Or upload an image below.")}
       />
       {url ? (
         <button

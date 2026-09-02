@@ -38,7 +38,7 @@ export async function PUT(request: Request, context: RouteContext) {
 
     const raw = normalizePassInput((await request.json()) as Record<string, unknown>);
     const input = parseCommonPassInput(raw);
-    const pass = await updatePass(id, input, input.status ?? existing.status);
+    const pass = await updatePass(id, input, input.status ?? existing.status, ownerId);
 
     await recordWalletEvent({
       passId: pass.id,

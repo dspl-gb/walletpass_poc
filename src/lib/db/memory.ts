@@ -82,12 +82,15 @@ export function memoryUpdatePass(
   passId: string,
   input: CommonPassInputParsed,
   status?: "draft" | "published" | "archived",
+  ownerId?: string | null,
 ): CommonPass {
   const existing = passes.get(passId);
   if (!existing) throw notFound();
 
+  const userId = existing.userId ?? ownerId ?? null;
   const updated: CommonPass = {
     ...existing,
+    userId,
     name: input.name,
     passType: input.passType,
     organization: input.organization,
