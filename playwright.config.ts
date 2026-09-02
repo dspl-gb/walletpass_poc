@@ -12,6 +12,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 const baseURL = process.env.BASE_URL ?? "http://localhost:3000";
 const useDevServer = !process.env.BASE_URL;
+const vercelBypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
 
 export default defineConfig({
   testDir: "e2e",
@@ -30,6 +31,16 @@ export default defineConfig({
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
+    // Avoid PWA service-worker caching when testing a deployed build.
+    serviceWorkers: useDevServer ? "allow" : "block",
+    ...(vercelBypassSecret
+      ? {
+          extraHTTPHeaders: {
+            "x-vercel-protection-bypass": vercelBypassSecret,
+            "x-vercel-set-bypass-cookie": "true",
+          },
+        }
+      : {}),
   },
 
   projects: [

@@ -16,7 +16,7 @@ test.describe("Post-deployment smoke", () => {
     const response = await page.goto("/");
     expect(response?.status()).toBe(200);
     await expect(
-      page.getByRole("heading", { name: /Issue a membership pass/i }),
+      page.getByRole("heading", { name: /Design wallet passes/i }),
     ).toBeVisible();
   });
 
@@ -29,13 +29,17 @@ test.describe("Post-deployment smoke", () => {
   });
 
   test("API health: demo pass endpoint responds", async ({ request }) => {
-    const response = await request.post("/api/passes/demo");
-    expect(response.status()).toBeLessThan(500);
+    const response = await request.post("/api/passes/demo", { maxRedirects: 0 });
+    expect(response.status()).not.toBe(401);
+    expect(response.status()).not.toBe(403);
+    expect([307, 308]).toContain(response.status());
   });
 
   test("offline page is accessible", async ({ page }) => {
     const response = await page.goto("/offline");
     expect(response?.status()).toBe(200);
-    await expect(page.getByText(/offline/i)).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /You're offline/i }),
+    ).toBeVisible();
   });
 });

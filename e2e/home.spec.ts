@@ -4,14 +4,14 @@ test.describe("Home page", () => {
   test("renders the hero heading", async ({ page }) => {
     await page.goto("/");
     await expect(
-      page.getByRole("heading", { name: /Issue a membership pass/i }),
+      page.getByRole("heading", { name: /Design wallet passes/i }),
     ).toBeVisible();
   });
 
-  test("displays the Create Demo Pass button", async ({ page }) => {
+  test("displays the Create a pass button", async ({ page }) => {
     await page.goto("/");
     await expect(
-      page.getByRole("button", { name: /create.*pass/i }),
+      page.getByRole("link", { name: /Create a pass/i }),
     ).toBeVisible();
   });
 

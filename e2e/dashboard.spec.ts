@@ -10,15 +10,13 @@ test.describe("Dashboard page", () => {
 
   test("shows empty state when no passes exist", async ({ page }) => {
     await page.goto("/dashboard");
-    await expect(
-      page.getByText(/No passes yet|Create a demo/i),
-    ).toBeVisible();
+    await expect(page.getByText(/No passes yet/i)).toBeVisible();
   });
 
-  test("has Create Demo Pass button", async ({ page }) => {
+  test("has Create pass button", async ({ page }) => {
     await page.goto("/dashboard");
     await expect(
-      page.getByRole("button", { name: /Create Demo Pass/i }),
+      page.getByRole("link", { name: /Create pass/i }),
     ).toBeVisible();
   });
 });
