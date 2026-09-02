@@ -66,9 +66,9 @@ export interface BrandConfig {
 export function getBrandConfig(): BrandConfig {
   return {
     name: read("BRAND_NAME") ?? "Demo Company",
-    backgroundColor: read("BRAND_BACKGROUND_COLOR") ?? "#0B1220",
+    backgroundColor: read("BRAND_BACKGROUND_COLOR") ?? "#0D5C3D",
     foregroundColor: read("BRAND_FOREGROUND_COLOR") ?? "#FFFFFF",
-    labelColor: read("BRAND_LABEL_COLOR") ?? "#9CC3FF",
+    labelColor: read("BRAND_LABEL_COLOR") ?? "#B7E4C7",
   };
 }
 

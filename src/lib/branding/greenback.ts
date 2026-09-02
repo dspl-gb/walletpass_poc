@@ -13,9 +13,9 @@ export function createGreenbackPassInput(): Omit<CommonPassInputParsed, "userId"
         logoText: "Greenback",
       },
       appearance: {
-        backgroundColor: "#082868",
+        backgroundColor: "#0D5C3D",
         foregroundColor: "#FFFFFF",
-        labelColor: "#B8D4FF",
+        labelColor: "#B7E4C7",
         logo: null,
         strip: null,
         thumbnail: null,

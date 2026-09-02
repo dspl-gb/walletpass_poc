@@ -1,7 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-const OWNER_COOKIE = "wpd_owner";
-const OWNER_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
+import { OWNER_COOKIE, ownerCookieOptions } from "@/lib/owner-cookie";
 
 /**
  * Issues the anonymous owner cookie used in place of a login flow.
@@ -25,11 +24,7 @@ export function middleware(request: NextRequest) {
   response.cookies.set({
     name: OWNER_COOKIE,
     value: ownerId,
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: OWNER_COOKIE_MAX_AGE,
+    ...ownerCookieOptions,
   });
 
   return response;

@@ -9,9 +9,9 @@ import type {
 } from "./schema";
 
 export const DEFAULT_COLORS = {
-  backgroundColor: "#0B1220",
+  backgroundColor: "#0D5C3D",
   foregroundColor: "#FFFFFF",
-  labelColor: "#9CC3FF",
+  labelColor: "#B7E4C7",
 };
 
 export const DEFAULT_VALIDITY: PassValidity = {

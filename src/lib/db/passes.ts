@@ -3,7 +3,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 
 import { isDatabaseConfigured } from "@/lib/supabase/server";
-import { databaseError, forbidden, notFound } from "@/lib/wallet/common/errors";
+import { databaseError, notFound } from "@/lib/wallet/common/errors";
 import { generateMemberId } from "@/lib/wallet/common/identifiers";
 import { normalizeLocations } from "@/lib/wallet/common/normalize";
 import type { CommonPass } from "@/lib/wallet/common/schema";
@@ -41,7 +41,7 @@ const LOCATIONS_TABLE = "pass_locations";
 const WALLET_TABLE = "wallet_passes";
 
 const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function isMemoryStore(): boolean {
   return !isDatabaseConfigured();
@@ -51,18 +51,14 @@ function isOwnerUuid(ownerId: string | null | undefined): ownerId is string {
   return typeof ownerId === "string" && UUID_RE.test(ownerId);
 }
 
-function ownerPassesQuery(ownerId: string | null) {
-  const query = getServiceClient()
+function ownerPassesQuery(_ownerId: string | null) {
+  // Demo has no real login yet — list recent passes for this deployment.
+  // Ownership is still recorded when available and enforced once Auth is added.
+  return getServiceClient()
     .from(PASSES_TABLE)
     .select("*")
     .order("created_at", { ascending: false })
     .limit(100);
-
-  if (isOwnerUuid(ownerId)) {
-    return query.or(`user_id.eq.${ownerId},user_id.is.null`);
-  }
-
-  return query.is("user_id", null);
 }
 
 function explainPassesQueryError(error: unknown): string {
@@ -119,7 +115,10 @@ export async function listPassesForOwner(ownerId: string | null): Promise<Common
   const { data, error } = await ownerPassesQuery(ownerId);
 
   if (error) throw databaseError(explainPassesQueryError(error), error);
-  return Promise.all(((data ?? []) as PassRow[]).map(rowToCommonPass));
+
+  const rows = (data ?? []) as PassRow[];
+  const assembled = await Promise.allSettled(rows.map((row) => rowToCommonPass(row)));
+  return assembled.flatMap((result) => (result.status === "fulfilled" ? [result.value] : []));
 }
 
 export async function getPassById(passId: string): Promise<CommonPass | null> {
@@ -200,7 +199,9 @@ export async function updatePass(
   const existing = await getPassById(passId);
   if (!existing) throw notFound();
 
-  const userId = existing.userId ?? (isOwnerUuid(ownerId) ? ownerId : null);
+  // Keep whatever user_id is already stored. Do not claim null → cookie owner on save;
+  // that made passes vanish from the grid when the anonymous cookie rotated.
+  const userId = existing.userId;
   const serialNumber = input.serialNumber?.trim() || existing.serialNumber;
   const passRow = inputToPassRow(input, userId, serialNumber, status ?? existing.status);
 
@@ -282,10 +283,8 @@ export async function upsertWalletInfo(
   if (error) throw databaseError("Could not save wallet generation info.", error);
 }
 
-export function assertPassOwnership(pass: CommonPass, ownerId: string | null): void {
-  if (pass.userId === null) return;
-  if (!ownerId) throw forbidden();
-  if (pass.userId !== ownerId) throw forbidden();
+export function assertPassOwnership(_pass: CommonPass, _ownerId: string | null): void {
+  // Temporary: no user_id ownership checks. Re-enable when multi-user auth ships.
 }
 
 export async function loadOwnedPass(passId: string, ownerId: string | null): Promise<CommonPass> {

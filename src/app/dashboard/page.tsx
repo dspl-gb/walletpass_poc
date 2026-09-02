@@ -9,14 +9,12 @@ import { PassPreview } from "@/components/wallet/pass-preview";
 import { StatusBanner } from "@/components/wallet/status-banner";
 import { getWalletConfigStatus } from "@/lib/config/env";
 import { listPassesForOwner, isUsingMemoryStore } from "@/lib/db/passes";
-import { getOwnerId } from "@/lib/session";
 import { passTypeLabel } from "@/lib/wallet/common/schema";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const ownerId = await getOwnerId();
-  const passes = await listPassesForOwner(ownerId);
+  const passes = await listPassesForOwner(null);
   const status = getWalletConfigStatus();
   const featured = passes[0] ?? null;
 

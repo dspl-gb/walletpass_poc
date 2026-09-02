@@ -21,11 +21,8 @@ function clonePass(pass: CommonPass): CommonPass {
   return structuredClone(pass);
 }
 
-export function memoryListPassesForOwner(ownerId: string | null): CommonPass[] {
+export function memoryListPassesForOwner(_ownerId: string | null): CommonPass[] {
   return [...passes.values()]
-    .filter((pass) =>
-      ownerId ? pass.userId === ownerId || pass.userId === null : pass.userId === null,
-    )
     .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
     .map(clonePass);
 }
@@ -87,7 +84,7 @@ export function memoryUpdatePass(
   const existing = passes.get(passId);
   if (!existing) throw notFound();
 
-  const userId = existing.userId ?? ownerId ?? null;
+  const userId = existing.userId;
   const updated: CommonPass = {
     ...existing,
     userId,

@@ -15,10 +15,12 @@ describe("authorization and ownership", () => {
     expect(loaded.serialNumber).toBe("MEM-OWN");
   });
 
-  it("rejects a different owner", async () => {
+  it("temporarily allows any session to open any pass (user_id checks disabled)", async () => {
     const created = memoryCreatePass({ ...samplePassInput(), serialNumber: "MEM-PRIV" }, OWNER_A, "published");
-    await expect(loadOwnedPass(created.id, OWNER_B)).rejects.toMatchObject({ code: "forbidden" });
-    expect(() => assertPassOwnership(created, OWNER_B)).toThrow(AppError);
+    const loaded = await loadOwnedPass(created.id, OWNER_B);
+    expect(loaded.serialNumber).toBe("MEM-PRIV");
+    expect(() => assertPassOwnership(created, OWNER_B)).not.toThrow();
+    expect(() => assertPassOwnership(created, null)).not.toThrow();
   });
 
   it("allows shared passes with a null user_id", () => {

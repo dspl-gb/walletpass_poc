@@ -9,8 +9,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   try {
-    const ownerId = await getOwnerIdFromRouteHandler(request);
-    const passes = await listPassesForOwner(ownerId);
+    const passes = await listPassesForOwner(null);
     return jsonResponse({ passes });
   } catch (error) {
     return errorResponse(error, { route: "GET /api/passes" });
@@ -19,11 +18,14 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const ownerId = await ensureOwnerId(request);
+    // Ensure the anonymous session cookie exists for uploads / wallet calls,
+    // but do not bind passes.user_id to it yet (no real auth). Binding the
+    // cookie hid passes from the grid whenever wpd_owner rotated.
+    await ensureOwnerId(request);
     const raw = normalizePassInput((await request.json()) as Record<string, unknown>);
     const input = parseCommonPassInput(raw);
     const status = input.status === "published" ? "published" : "draft";
-    const pass = await createPass(input, ownerId, status);
+    const pass = await createPass(input, null, status);
     await recordWalletEvent({
       passId: pass.id,
       platform: "system",
