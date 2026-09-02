@@ -3,7 +3,7 @@ import "server-only";
 import { errorResponse, jsonResponse } from "@/lib/api/responses";
 import { isDatabaseConfigured } from "@/lib/supabase/server";
 import { getServiceClient } from "@/lib/supabase/server";
-import { getOwnerIdFromRouteHandler } from "@/lib/session";
+import { ensureOwnerId } from "@/lib/session";
 import { configurationMissing, invalidRequest } from "@/lib/wallet/common/errors";
 
 export const runtime = "nodejs";
@@ -63,10 +63,7 @@ function explainUploadError(message: string): string {
 
 export async function POST(request: Request) {
   try {
-    const ownerId = await getOwnerIdFromRouteHandler(request);
-    if (!ownerId) {
-      throw invalidRequest("Owner session is required for uploads. Refresh the page and try again.");
-    }
+    const ownerId = await ensureOwnerId(request);
 
     if (!isDatabaseConfigured()) {
       throw configurationMissing(

@@ -17,6 +17,7 @@ next-env.d.ts
 /test-results
 /playwright/.cache
 /html-report
+/e2e/.auth
 
 # misc
 .DS_Store

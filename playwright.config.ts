@@ -13,10 +13,12 @@ import { defineConfig, devices } from "@playwright/test";
 const baseURL = process.env.BASE_URL ?? "http://localhost:3000";
 const useDevServer = !process.env.BASE_URL;
 const vercelBypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+const deploymentAuthFile = useDevServer ? undefined : "e2e/.auth/deployment.json";
 
 export default defineConfig({
   testDir: "e2e",
   outputDir: "test-results/playwright",
+  globalSetup: useDevServer ? undefined : "./e2e/global-setup.ts",
 
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
@@ -28,6 +30,7 @@ export default defineConfig({
 
   use: {
     baseURL,
+    storageState: vercelBypassSecret ? deploymentAuthFile : undefined,
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     video: "retain-on-failure",

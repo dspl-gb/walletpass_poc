@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import { NextResponse } from "next/server";
 
-export async function POST() {
-  redirect("/passes/new");
+export async function POST(request: Request) {
+  return NextResponse.redirect(new URL("/passes/new", request.url), 307);
 }

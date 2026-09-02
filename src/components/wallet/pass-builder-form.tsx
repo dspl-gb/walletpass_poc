@@ -51,9 +51,29 @@ export function PassBuilderForm({ initialPass, mode = "create" }: PassBuilderFor
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/session", { credentials: "same-origin" })
-      .then(() => setSessionReady(true))
-      .catch(() => setSessionReady(true));
+    let cancelled = false;
+
+    async function bootstrapSession() {
+      try {
+        const response = await fetch("/api/session", { credentials: "same-origin" });
+        const body = (await response.json()) as { ownerId?: string; error?: { message?: string } };
+        if (cancelled) return;
+        if (response.ok && body.ownerId) {
+          setSessionReady(true);
+          return;
+        }
+        setError(body.error?.message ?? "Could not start your session. Refresh the page and try again.");
+      } catch {
+        if (!cancelled) {
+          setError("Could not start your session. Refresh the page and try again.");
+        }
+      }
+    }
+
+    void bootstrapSession();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const previewPass: CommonPass = {
@@ -144,6 +164,15 @@ export function PassBuilderForm({ initialPass, mode = "create" }: PassBuilderFor
     }
   }
 
+  async function ensureOwnerSession(): Promise<void> {
+    const response = await fetch("/api/session", { credentials: "same-origin" });
+    const body = (await response.json()) as { ownerId?: string; error?: { message?: string } };
+    if (!response.ok || !body.ownerId) {
+      throw new Error(body.error?.message ?? "Could not start your session. Refresh the page and try again.");
+    }
+    setSessionReady(true);
+  }
+
   async function uploadImage(assetType: "logo" | "strip" | "thumbnail" | "background", file: File) {
     if (!sessionReady) {
       setError("Session is still starting. Wait a moment and try again.");
@@ -153,6 +182,7 @@ export function PassBuilderForm({ initialPass, mode = "create" }: PassBuilderFor
     setNotice(null);
     setUploadingAsset(assetType);
     try {
+      await ensureOwnerSession();
       const activePassId = await ensurePassId();
       const formData = new FormData();
       formData.append("file", file);
@@ -239,7 +269,6 @@ export function PassBuilderForm({ initialPass, mode = "create" }: PassBuilderFor
                 onUpload={(file) => uploadImage("logo", file)}
                 disabled={pending || !sessionReady}
                 uploading={uploadingAsset === "logo"}
-                hint="Defaults to Aeropay. Upload your own or paste a URL."
               />
               <FormField label="Serial Number / Pass ID" value={form.serialNumber} onChange={(v) => updateForm("serialNumber", v)} hint="Auto-generated if left blank on first save." />
             </CardContent>

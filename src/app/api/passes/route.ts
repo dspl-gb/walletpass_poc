@@ -1,7 +1,7 @@
 import { errorResponse, jsonResponse } from "@/lib/api/responses";
 import { recordWalletEvent } from "@/lib/db/events";
 import { createPass, listPassesForOwner } from "@/lib/db/passes";
-import { getOwnerIdFromRouteHandler } from "@/lib/session";
+import { ensureOwnerId } from "@/lib/session";
 import { normalizePassInput, parseCommonPassInput } from "@/lib/wallet/common/validation";
 
 export const runtime = "nodejs";
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const ownerId = await getOwnerIdFromRouteHandler(request);
+    const ownerId = await ensureOwnerId(request);
     const raw = normalizePassInput((await request.json()) as Record<string, unknown>);
     const input = parseCommonPassInput(raw);
     const status = input.status === "published" ? "published" : "draft";

@@ -1,5 +1,7 @@
 import "server-only";
 
+import { randomUUID } from "node:crypto";
+
 import { cookies } from "next/headers";
 
 /**
@@ -16,6 +18,14 @@ import { cookies } from "next/headers";
  */
 export const OWNER_COOKIE = "wpd_owner";
 export const OWNER_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
+
+export const ownerCookieOptions = {
+  httpOnly: true,
+  sameSite: "lax" as const,
+  secure: process.env.NODE_ENV === "production",
+  path: "/",
+  maxAge: OWNER_COOKIE_MAX_AGE,
+};
 
 export async function getOwnerId(): Promise<string | null> {
   const store = await cookies();
@@ -42,4 +52,18 @@ export async function getOwnerIdFromRouteHandler(request: Request): Promise<stri
   const fromStore = store.get(OWNER_COOKIE)?.value;
   if (fromStore) return fromStore;
   return getOwnerIdFromRequest(request);
+}
+
+/**
+ * Returns a stable owner id for Route Handlers, creating the httpOnly cookie when
+ * middleware did not run or the browser has not persisted it yet.
+ */
+export async function ensureOwnerId(request: Request): Promise<string> {
+  const existing = await getOwnerIdFromRouteHandler(request);
+  if (existing) return existing;
+
+  const ownerId = randomUUID();
+  const store = await cookies();
+  store.set({ name: OWNER_COOKIE, value: ownerId, ...ownerCookieOptions });
+  return ownerId;
 }
