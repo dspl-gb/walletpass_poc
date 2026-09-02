@@ -33,7 +33,6 @@ Desktop.ini
 *.cer
 *.key
 *.crt
-/certs/
 /certs_old/
 /secrets/
 
